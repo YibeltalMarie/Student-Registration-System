@@ -7,4 +7,4 @@
 | Yishak Asrat   | ETS1458/16| y2man        |
 | Yeabsira Belete| ETS1426/16| yeab166      |
 | Yeabsira Ayele | ETS1406/16| yidenek5     |
-| Yafet Michael  | ETS1403/16| yafet        |
+| Yafet Michael  | ETS1403/16| yafev        |
