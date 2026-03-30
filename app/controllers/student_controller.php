@@ -1,73 +1,78 @@
 <?php
+// app/controllers/StudentController.php
 
-function students_index($db) {
-    $students  = student_get_all($db);
-    $pageTitle = 'Students';
-    require_once ROOT_PATH . '/app/views/students/index.php';
+require_once __DIR__ . '/../models/student.php';
+require_once __DIR__ . '/../../config/database.php';
+
+function studentIndex() {
+    global $db;
+    $students = getAllStudents($db);
+    require_once __DIR__ . '/../views/students/index.php';
 }
 
-function students_create($db) {
-    $departments = department_get_all($db);
-    $pageTitle   = 'Add Student';
-    require_once ROOT_PATH . '/app/views/students/create.php';
-}
-
-function students_store($db) {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        header('Location: index.php?page=students');
-        exit;
+function studentCreate() {
+    global $db;
+    $departments = getAllDepartments($db);
+    
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $firstName = $_POST['first_name'] ?? '';
+        $lastName = $_POST['last_name'] ?? '';
+        $email = $_POST['email'] ?? '';
+        $phone = $_POST['phone'] ?? '';
+        $dateOfBirth = $_POST['date_of_birth'] ?? '';
+        $gender = $_POST['gender'] ?? '';
+        $address = $_POST['address'] ?? '';
+        // Allow department_id to be NULL (not required)
+        $departmentId = !empty($_POST['department_id']) ? $_POST['department_id'] : null;
+        $enrollmentYear = $_POST['enrollment_year'] ?? date('Y');
+        
+        $result = createStudent($db, $firstName, $lastName, $email, $phone, $dateOfBirth, $gender, $address, $departmentId, $enrollmentYear);
+        
+        if ($result) {
+            header('Location: index.php?url=students&success=created');
+            exit;
+        } else {
+            $error = "Failed to add student. Email might already exist.";
+        }
     }
-
-    $result = student_create($db, $_POST);
-
-    if ($result) {
-        header('Location: index.php?page=students&success=Student+added+successfully');
-    } else {
-        header('Location: index.php?page=students&error=' . urlencode(mysqli_error($db)));
-    }
-    exit;
+    
+    require_once __DIR__ . '/../views/students/create.php';
 }
 
-function students_edit($db) {
-    $id      = $_GET['id'] ?? 0;
-    $student = student_get_by_id($db, $id);
-
+function studentEdit($id) {
+    global $db;
+    $student = getStudentById($db, $id);
+    $departments = getAllDepartments($db);
+    
     if (!$student) {
-        header('Location: index.php?page=students&error=Student+not+found');
+        header('Location: index.php?url=students');
         exit;
     }
-
-    $departments = department_get_all($db);
-    $pageTitle   = 'Edit Student';
-    require_once ROOT_PATH . '/app/views/students/edit.php';
+    
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $firstName = $_POST['first_name'] ?? '';
+        $lastName = $_POST['last_name'] ?? '';
+        $email = $_POST['email'] ?? '';
+        $phone = $_POST['phone'] ?? '';
+        $dateOfBirth = $_POST['date_of_birth'] ?? '';
+        $gender = $_POST['gender'] ?? '';
+        $address = $_POST['address'] ?? '';
+        $departmentId = !empty($_POST['department_id']) ? $_POST['department_id'] : null;
+        $enrollmentYear = $_POST['enrollment_year'] ?? date('Y');
+        
+        if (updateStudent($db, $id, $firstName, $lastName, $email, $phone, $dateOfBirth, $gender, $address, $departmentId, $enrollmentYear)) {
+            header('Location: index.php?url=students&success=updated');
+            exit;
+        }
+    }
+    
+    require_once __DIR__ . '/../views/students/edit.php';
 }
 
-function students_update($db) {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        header('Location: index.php?page=students');
-        exit;
-    }
-
-    $id     = $_POST['student_id'] ?? 0;
-    $result = student_update($db, $id, $_POST);
-
-    if ($result) {
-        header('Location: index.php?page=students&success=Student+updated+successfully');
-    } else {
-        header('Location: index.php?page=students&error=' . urlencode(mysqli_error($db)));
-    }
+function studentDelete($id) {
+    global $db;
+    deleteStudent($db, $id);
+    header('Location: index.php?url=students&success=deleted');
     exit;
 }
-
-function students_delete($db) {
-    $id     = $_GET['id'] ?? 0;
-    $result = student_delete($db, $id);
-
-    if ($result) {
-        header('Location: index.php?page=students&success=Student+deleted+successfully');
-    } else {
-        header('Location: index.php?page=students&error=' . urlencode(mysqli_error($db)));
-    }
-    exit;
-}
-
+?>
