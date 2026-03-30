@@ -282,3 +282,51 @@
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
         }
+
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-container {
+                padding: 0 15px;
+            }
+            
+            .nav-menu {
+                gap: 15px;
+            }
+            
+            .nav-menu span {
+                display: none;
+            }
+            
+            .main-content {
+                padding: 0 15px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .student-table th,
+            .student-table td {
+                padding: 10px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.php" class="logo">
+                <i class="fas fa-graduation-cap"></i>
+                <span><?php echo APP_NAME; ?></span>
+            </a>
+            <ul class="nav-menu">
+                <li><a href="index.php"><i class="fas fa-home"></i> <span>Home</span></a></li>
+                <li><a href="index.php?url=students"><i class="fas fa-users"></i> <span>Students</span></a></li>
+                <li><a href="index.php?url=students/create"><i class="fas fa-user-plus"></i> <span>Add Student</span></a></li>
+            </ul>
+        </div>
+    </nav>
+    
+    <main class="main-content">
