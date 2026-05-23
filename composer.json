@@ -1,0 +1,22 @@
+{
+    "name": "student/registration-system",
+    "description": "Student Registration System - Full Stack PHP MVC",
+    "type": "project",
+    "require": {
+        "php": ">=8.0",
+        "phpmailer/phpmailer": "^6.8",
+        "setasign/fpdf": "^1.8",
+        "vlucas/phpdotenv": "^5.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        },
+        "files": [
+            "app/helpers.php"
+        ]
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}

@@ -1,3 +1,11 @@
-# Ignore .env file (contains passwords)
+/vendor/
 .env
-
+storage/uploads/profiles/*
+storage/backups/*
+storage/exports/*
+!storage/uploads/profiles/.gitkeep
+!storage/backups/.gitkeep
+!storage/exports/.gitkeep
+*.log
+.DS_Store
+Thumbs.db
