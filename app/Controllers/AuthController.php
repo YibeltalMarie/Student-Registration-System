@@ -143,4 +143,12 @@ public function login(): void
         redirect('login');
     }
 
+    // =============================REGISTER ===============================
+    public function registerForm(): void
+    {
+        if (!empty($_SESSION['user_id'])) redirect('');
+        $this->view('auth.register');
+    }
+
+
 }
