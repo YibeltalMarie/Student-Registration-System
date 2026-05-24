@@ -46,7 +46,7 @@ public function login(): void
             redirect('login');
         }
 
-        // Verify password: try with pepper, fall back to without (upgrades on match)
+        // ====== Verify password: try with pepper, fall back to without (upgrades on match) =======
         $pepper   = $_ENV['PASSWORD_PEPPER'] ?? '';
         $verified = false;
 
@@ -71,7 +71,7 @@ public function login(): void
             redirect('login');
         }
 
-        // Email verification — skip for admin
+        // ====== Email verification — skip for admin =======
         if (empty($user['email_verified_at']) && $user['role'] !== 'admin') {
             if (!$this->emailService->isSmtpConfigured()) {
                 $token = $user['email_verification_token'] ?? '';
@@ -90,7 +90,7 @@ public function login(): void
             redirect('login');
         }
 
-        // Successful login
+        // ======  Successful login =======
         session_regenerate_id(true);
         $this->userModel->resetFailedAttempts((int)$user['id']);
 
@@ -100,7 +100,7 @@ public function login(): void
         $_SESSION['last_activity']        = time();
         $_SESSION['must_change_password'] = (bool)($user['must_change_password'] ?? false);
 
-        // If student role, load their student record id into session
+        // ====== If student role, load their student record id into session =======
         if ($user['role'] === 'student') {
             $student = $this->studentModel->findByEmail($user['email']);
             if ($student) {
@@ -126,6 +126,21 @@ public function login(): void
         }
 
         redirect('');
+    }
+
+       // =============================LOGOUT ===============================
+    public function logout(): void
+    {
+        $this->checkCsrf();
+        if (!empty($_SESSION['user_id'])) {
+            $this->userModel->clearRememberToken((int)$_SESSION['user_id']);
+        }
+        session_unset();
+        session_destroy();
+        if (isset($_COOKIE['remember_token'])) {
+            setcookie('remember_token', '', time() - 3600, '/');
+        }
+        redirect('login');
     }
 
 }
