@@ -20,4 +20,12 @@ class AuthController extends BaseController
         $this->emailService = new EmailService();
     }
 
+// =======================LOGIN =================================
+    public function loginForm(): void
+    {
+        if (!empty($_SESSION['user_id'])) redirect('');
+        $this->view('auth.login');
+    }
+
+
 }
