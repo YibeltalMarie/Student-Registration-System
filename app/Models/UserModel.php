@@ -29,6 +29,21 @@ class UserModel extends BaseModel
         $id = $this->lastInsertId();
         $stmt->close();
 
+         // =========Step 2: set nullable fields using direct SQL NULL where needed ===========
+        $verifiedAt = $data['email_verified_at'] ?? null;
+        $token      = $data['email_verification_token'] ?? null;
+
+        // =========Use a raw query to safely set NULL values============
+        $verifiedSql = $verifiedAt ? "'" . $this->db->real_escape_string($verifiedAt) . "'" : 'NULL';
+        $tokenSql    = $token      ? "'" . $this->db->real_escape_string($token) . "'"      : 'NULL';
+
+        $this->db->query(
+            "UPDATE users
+             SET email_verified_at = {$verifiedSql},
+                 email_verification_token = {$tokenSql}
+             WHERE id = {$id}"
+        );
+
 
         return $id;
     }
