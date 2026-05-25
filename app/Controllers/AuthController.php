@@ -150,5 +150,53 @@ public function login(): void
         $this->view('auth.register');
     }
 
+     public function register(): void
+    {
+        $this->checkCsrf();
+
+        $errors = $this->validate($_POST, [
+            'username' => 'required|min:3|max:50',
+            'email'    => 'required|email',
+            'password' => 'required|min:8',
+        ]);
+
+        if (!empty($errors)) {
+            $_SESSION['errors'] = $errors;
+            $_SESSION['old']    = $_POST;
+            redirect('register');
+        }
+
+        if ($this->userModel->usernameExists(trim($_POST['username']))) {
+            flash('error', 'Username already taken.');
+            redirect('register');
+        }
+        if ($this->userModel->emailExists(trim($_POST['email']))) {
+            flash('error', 'Email already registered.');
+            redirect('register');
+        }
+
+        $pepper    = $_ENV['PASSWORD_PEPPER'] ?? '';
+        $smtpReady = $this->emailService->isSmtpConfigured();
+        $token     = bin2hex(random_bytes(32));
+        $autoVerify = !$smtpReady;
+
+        $this->userModel->create([
+            'username'                 => trim($_POST['username']),
+            'email'                    => trim($_POST['email']),
+            'password'                 => password_hash($_POST['password'] . $pepper, PASSWORD_BCRYPT),
+            'role'                     => 'student',
+            'must_change_password'     => 0,
+            'email_verification_token' => $autoVerify ? null : $token,
+            'email_verified_at'        => $autoVerify ? date('Y-m-d H:i:s') : null,
+        ]);
+
+        if ($autoVerify) {
+            flash('success', 'Account created! You can now log in.');
+        } else {
+            $this->emailService->sendVerificationEmail(trim($_POST['email']), $token);
+            flash('success', 'Registered! Check your email to verify your account.');
+        }
+        redirect('login');
+    }
 
 }
