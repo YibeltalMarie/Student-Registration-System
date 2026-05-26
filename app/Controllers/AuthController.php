@@ -199,4 +199,16 @@ public function login(): void
         redirect('login');
     }
 
+     // =============================VERIFY EMAIL ===============================
+    public function verifyEmail(): void
+    {
+        $token = trim($_GET['token'] ?? '');
+        if ($token && $this->userModel->verifyEmail($token)) {
+            flash('success', 'Email verified! You can now log in.');
+        } else {
+            flash('error', 'Invalid or expired verification link.');
+        }
+        redirect('login');
+    }
+
 }
