@@ -44,8 +44,15 @@ class UserModel extends BaseModel
              WHERE id = {$id}"
         );
 
-
         return $id;
     }
 
+    public function findByUsername(string $username): ?array
+    {
+        $stmt = $this->query("SELECT * FROM users WHERE username = ?", 's', [$username]);
+        $row  = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $row ?: null;
+    }
+    
 }
