@@ -70,4 +70,17 @@ class UserModel extends BaseModel
         $stmt->close();
         return $row ?: null;
     }
+
+    public function verifyEmail(string $token): bool
+    {
+        $stmt = $this->query(
+            "UPDATE users
+             SET email_verified_at = NOW(), email_verification_token = NULL
+             WHERE email_verification_token = ?",
+            's', [$token]
+        );
+        $affected = $stmt->affected_rows;
+        $stmt->close();
+        return $affected > 0;
+    }
 }
