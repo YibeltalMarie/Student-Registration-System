@@ -211,4 +211,12 @@ public function login(): void
         redirect('login');
     }
 
+    // =============================CHANGE PASSWORD ===============================
+    public function changePasswordForm(): void
+    {
+        if (empty($_SESSION['user_id'])) redirect('login');
+        if (empty($_SESSION['must_change_password'])) redirect('');
+        $this->view('auth.change_password');
+    }
+    
 }
