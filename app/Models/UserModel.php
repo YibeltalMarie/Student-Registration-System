@@ -62,4 +62,12 @@ class UserModel extends BaseModel
         $stmt->close();
         return $row ?: null;
     }
+
+    public function findById(int $id): ?array
+    {
+        $stmt = $this->query("SELECT * FROM users WHERE id = ?", 'i', [$id]);
+        $row  = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $row ?: null;
+    }
 }
