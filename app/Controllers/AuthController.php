@@ -218,5 +218,48 @@ public function login(): void
         if (empty($_SESSION['must_change_password'])) redirect('');
         $this->view('auth.change_password');
     }
-    
+
+    public function changePassword(): void
+    {
+        $this->checkCsrf();
+        if (empty($_SESSION['user_id'])) redirect('login');
+
+        $userId = (int)$_SESSION['user_id'];
+        $user   = $this->userModel->findById($userId);
+
+        if (!$user) redirect('login');
+
+        // =========== Require OLD password ===========
+        $oldPass = $_POST['old_password'] ?? '';
+        $pepper  = $_ENV['PASSWORD_PEPPER'] ?? '';
+        $oldOk   = password_verify($oldPass . $pepper, $user['password']);
+        if (!$oldOk) {
+            // ========Fallback: try without pepper (legacy hash)---------
+            $oldOk = password_verify($oldPass, $user['password']);
+        }
+
+        if (!$oldOk) {
+            flash('error', 'Old password is incorrect.');
+            redirect('change-password');
+        }
+
+        $errors = $this->validate($_POST, ['password' => 'required|min:8']);
+        if (!empty($errors)) {
+            flash('error', current($errors));
+            redirect('change-password');
+        }
+
+        if (($_POST['password'] ?? '') !== ($_POST['password_confirm'] ?? '')) {
+            flash('error', 'New passwords do not match.');
+            redirect('change-password');
+        }
+
+        $newHash = password_hash($_POST['password'] . $pepper, PASSWORD_BCRYPT);
+        $this->userModel->updatePassword($userId, $newHash, true); // true = clear must_change_password
+
+        $_SESSION['must_change_password'] = false;
+        flash('success', 'Password changed successfully. Welcome!');
+        redirect('');
+    }
+
 }
