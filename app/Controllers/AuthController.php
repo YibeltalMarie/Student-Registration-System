@@ -262,4 +262,40 @@ public function login(): void
         redirect('');
     }
 
+      // =============================FORGOT PASSWORD ===============================
+    public function forgotPasswordForm(): void
+    {
+        $this->view('auth.forgot_password');
+    }
+
+    public function forgotPassword(): void
+    {
+        $this->checkCsrf();
+
+        $email = trim($_POST['email'] ?? '');
+        if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            flash('error', 'Please enter a valid email address.');
+            redirect('forgot-password');
+        }
+
+        $token = bin2hex(random_bytes(32));
+        $found = $this->userModel->setResetToken($email, $token);
+
+        if (!$this->emailService->isSmtpConfigured()) {
+            // Email is not configured — cannot send reset link
+            flash('error', 'Password reset requires email to be configured. Please contact your administrator to reset your password.');
+            redirect('forgot-password');
+        }
+
+        if ($found) {
+            $this->emailService->sendPasswordResetEmail($email, $token);
+            flash('success', 'A password reset link has been sent to your email address.');
+            redirect('login');
+        } else {
+            // Generic message — do not reveal whether the email exists
+            flash('info', 'If that email exists in our system, a reset link has been sent.');
+            redirect('login');
+        }
+    }
+
 }
