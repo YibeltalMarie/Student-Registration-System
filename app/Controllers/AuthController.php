@@ -298,4 +298,16 @@ public function login(): void
         }
     }
 
+    public function resetPasswordForm(): void
+    {
+        $token = $_GET['token'] ?? '';
+        $user  = $token ? $this->userModel->findByResetToken($token) : null;
+        if (!$user) {
+            flash('error', 'Invalid or expired reset link.');
+            redirect('login');
+        }
+        $this->view('auth.reset_password', ['token' => $token]);
+    }
+
+
 }
