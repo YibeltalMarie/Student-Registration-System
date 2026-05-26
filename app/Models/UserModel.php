@@ -54,5 +54,12 @@ class UserModel extends BaseModel
         $stmt->close();
         return $row ?: null;
     }
-    
+ 
+    public function findByEmail(string $email): ?array
+    {
+        $stmt = $this->query("SELECT * FROM users WHERE email = ?", 's', [$email]);
+        $row  = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $row ?: null;
+    }
 }
