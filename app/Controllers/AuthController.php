@@ -352,4 +352,67 @@ public function login(): void
         $this->view('auth.restore_default');
     }
 
+    public function restoreDefault(): void
+    {
+        $this->checkCsrf();
+
+        $email = trim($_POST['email'] ?? '');
+
+        if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            flash('error', 'Please enter a valid email address.');
+            redirect('restore-default');
+        }
+
+        // =========Find the user account by email  ===========
+        $user = $this->userModel->findByEmail($email);
+
+        if (!$user) {
+            // ---------Generic message — don't reveal whether email exists----------
+            flash('info', 'If that email belongs to a registered student, the default password has been restored and sent to your inbox.');
+            redirect('login');
+        }
+
+        // =========Only students can use this feature (admins should not restore to default)==========
+        if ($user['role'] !== 'student') {
+            flash('error', 'This feature is only available for student accounts. Admins must use the standard password reset.');
+            redirect('restore-default');
+        }
+
+        // =========Generate a fresh random 8-char password (NOT a fixed default)==========
+        $pepper          = $_ENV['PASSWORD_PEPPER'] ?? '';
+        $defaultPassword = $this->generateRandomPassword();
+        $hashedDefault   = password_hash($defaultPassword . $pepper, PASSWORD_BCRYPT);
+
+        // =========Restore password and force change on next login==========
+        $this->userModel->restoreDefaultPassword((int)$user['id'], $hashedDefault);
+
+        // Get student name for the email
+        $student = $this->studentModel->findByEmail($email);
+        $name    = $student
+            ? trim($student['first_name'] . ' ' . $student['last_name'])
+            : $user['username'];
+
+        // Send notification email with the new random password
+        $emailSent = $this->emailService->sendDefaultPasswordRestoredEmail(
+            $email,
+            $name,
+            $user['username'],
+            $defaultPassword
+        );
+
+        if ($emailSent) {
+            flash('success', 'Your password has been restored to the default. Check your email for the credentials, then log in and set a new password.');
+        } else {
+            // SMTP not configured — show credentials directly so student isn't locked out
+            flash('warning',
+                'Password restored to default: <strong>' . htmlspecialchars($defaultPassword) . '</strong>. ' .
+                '(Email not configured — credentials shown here.) ' .
+                'Log in with username <strong>' . htmlspecialchars($user['username']) . '</strong> ' .
+                'and change your password immediately.'
+            );
+        }
+
+        redirect('login');
+    }
+
 }
