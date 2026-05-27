@@ -83,4 +83,14 @@ class UserModel extends BaseModel
         $stmt->close();
         return $affected > 0;
     }
+
+    public function setVerificationToken(int $id, string $token): void
+    {
+        $this->query(
+            "UPDATE users SET email_verification_token = ? WHERE id = ?",
+            'si', [$token, $id]
+        )->close();
+    }
+
+    
 }
