@@ -309,5 +309,37 @@ public function login(): void
         $this->view('auth.reset_password', ['token' => $token]);
     }
 
+     public function resetPassword(): void
+    {
+        $this->checkCsrf();
+
+        $token = $_POST['token'] ?? '';
+        $user  = $token ? $this->userModel->findByResetToken($token) : null;
+        if (!$user) {
+            flash('error', 'Invalid or expired reset link.');
+            redirect('login');
+        }
+
+        $errors = $this->validate($_POST, ['password' => 'required|min:8']);
+        if (!empty($errors)) {
+            flash('error', current($errors));
+            redirect('reset-password?token=' . urlencode($token));
+        }
+
+        if (($_POST['password'] ?? '') !== ($_POST['password_confirm'] ?? '')) {
+            flash('error', 'Passwords do not match.');
+            redirect('reset-password?token=' . urlencode($token));
+        }
+
+        $pepper = $_ENV['PASSWORD_PEPPER'] ?? '';
+        $this->userModel->updatePassword(
+            (int)$user['id'],
+            password_hash($_POST['password'] . $pepper, PASSWORD_BCRYPT),
+            true
+        );
+
+        flash('success', 'Password reset successfully! Please log in.');
+        redirect('login');
+    }
 
 }
