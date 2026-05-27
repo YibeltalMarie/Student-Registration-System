@@ -107,5 +107,13 @@ class UserModel extends BaseModel
         )->close();
     }
 
+    public function resetFailedAttempts(int $id): void
+    {
+        $this->query(
+            "UPDATE users SET failed_attempts = 0, locked_until = NULL, last_login = NOW() WHERE id = ?",
+            'i', [$id]
+        )->close();
+    }
+
     
 }
