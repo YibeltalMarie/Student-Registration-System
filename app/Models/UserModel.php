@@ -115,5 +115,10 @@ class UserModel extends BaseModel
         )->close();
     }
 
+    public function isLocked(array $user): bool
+    {
+        if (empty($user['locked_until'])) return false;
+        return strtotime($user['locked_until']) > time();
+    }
     
 }
