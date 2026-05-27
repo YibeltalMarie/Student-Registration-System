@@ -92,5 +92,20 @@ class UserModel extends BaseModel
         )->close();
     }
 
+    public function incrementFailedAttempts(int $id): void
+    {
+        $max     = (int)($_ENV['LOGIN_MAX_ATTEMPTS']    ?? 5);
+        $minutes = (int)($_ENV['LOGIN_LOCKOUT_MINUTES'] ?? 15);
+        $this->query(
+            "UPDATE users
+             SET failed_attempts = failed_attempts + 1,
+                 locked_until = IF(failed_attempts + 1 >= ?,
+                                   DATE_ADD(NOW(), INTERVAL ? MINUTE),
+                                   locked_until)
+             WHERE id = ?",
+            'iii', [$max, $minutes, $id]
+        )->close();
+    }
+
     
 }
