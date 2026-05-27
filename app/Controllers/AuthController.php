@@ -342,4 +342,14 @@ public function login(): void
         redirect('login');
     }
 
+    // =============================RESTORE DEFAULT PASSWORD ===============================    
+    // Student submits their email → system verifies they are a registered
+    // student, generates a random password, emails it to them, and sets
+    // must_change_password = 1 so they must pick a new one on next login.
+
+    public function restoreDefaultForm(): void
+    {
+        $this->view('auth.restore_default');
+    }
+
 }
