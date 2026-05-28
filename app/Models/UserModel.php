@@ -191,4 +191,12 @@ class UserModel extends BaseModel
         $stmt->close();
         return (bool)$row;
     }
+
+     public function emailExists(string $email): bool
+    {
+        $stmt = $this->query("SELECT id FROM users WHERE email = ?", 's', [$email]);
+        $row  = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return (bool)$row;
+    }
 }
