@@ -165,4 +165,9 @@ class UserModel extends BaseModel
             )->close();
         }
     }
+
+    public function setRememberToken(int $id, string $token): void
+    {
+        $this->query("UPDATE users SET remember_token = ? WHERE id = ?", 'si', [$token, $id])->close();
+    }
 }
