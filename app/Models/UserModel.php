@@ -199,4 +199,15 @@ class UserModel extends BaseModel
         $stmt->close();
         return (bool)$row;
     }
+
+ public function getAllUsers(): array
+    {
+        $stmt = $this->query(
+            "SELECT id, username, email, role, email_verified_at, last_login, created_at
+             FROM users ORDER BY created_at DESC"
+        );
+        $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+        return $rows;
+    }   
 }
