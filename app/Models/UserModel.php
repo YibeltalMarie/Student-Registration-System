@@ -133,5 +133,16 @@ class UserModel extends BaseModel
         $stmt->close();
         return $affected > 0;
     }
+
+     public function findByResetToken(string $token): ?array
+    {
+        $stmt = $this->query(
+            "SELECT * FROM users WHERE reset_token = ? AND reset_token_expires > NOW()",
+            's', [$token]
+        );
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $row ?: null;
+    }
     
 }
