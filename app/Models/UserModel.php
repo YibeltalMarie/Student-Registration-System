@@ -183,4 +183,12 @@ class UserModel extends BaseModel
     {
         $this->query("UPDATE users SET remember_token = NULL WHERE id = ?", 'i', [$id])->close();
     }
+
+    public function usernameExists(string $username): bool
+    {
+        $stmt = $this->query("SELECT id FROM users WHERE username = ?", 's', [$username]);
+        $row  = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return (bool)$row;
+    }
 }
