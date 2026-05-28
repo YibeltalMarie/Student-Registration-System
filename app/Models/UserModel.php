@@ -145,4 +145,24 @@ class UserModel extends BaseModel
         return $row ?: null;
     }
     
+    // Updates password and clears reset token and must_change_password flag
+    public function updatePassword(int $id, string $hashedPassword, bool $clearForceChange = false): void
+    {
+        if ($clearForceChange) {
+            $this->query(
+                "UPDATE users
+                 SET password = ?, reset_token = NULL, reset_token_expires = NULL,
+                     must_change_password = 0
+                 WHERE id = ?",
+                'si', [$hashedPassword, $id]
+            )->close();
+        } else {
+            $this->query(
+                "UPDATE users
+                 SET password = ?, reset_token = NULL, reset_token_expires = NULL
+                 WHERE id = ?",
+                'si', [$hashedPassword, $id]
+            )->close();
+        }
+    }
 }
