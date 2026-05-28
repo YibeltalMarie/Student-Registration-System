@@ -170,4 +170,12 @@ class UserModel extends BaseModel
     {
         $this->query("UPDATE users SET remember_token = ? WHERE id = ?", 'si', [$token, $id])->close();
     }
+
+    public function findByRememberToken(string $token): ?array
+    {
+        $stmt = $this->query("SELECT * FROM users WHERE remember_token = ?", 's', [$token]);
+        $row  = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $row ?: null;
+    }
 }
