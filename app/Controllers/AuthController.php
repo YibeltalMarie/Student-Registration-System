@@ -415,4 +415,18 @@ public function login(): void
         redirect('login');
     }
 
+    /**
+     * Generates a cryptographically random 8-character password.
+     * Uses mixed case letters and digits (no ambiguous chars like 0/O/l/1).
+     */
+    private function generateRandomPassword(): string
+    {
+        $chars    = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        $password = '';
+        $max      = strlen($chars) - 1;
+        for ($i = 0; $i < 8; $i++) {
+            $password .= $chars[random_int(0, $max)];
+        }
+        return $password;
+    }
 }
