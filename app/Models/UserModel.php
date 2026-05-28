@@ -120,5 +120,18 @@ class UserModel extends BaseModel
         if (empty($user['locked_until'])) return false;
         return strtotime($user['locked_until']) > time();
     }
+
+     public function setResetToken(string $email, string $token): bool
+    {
+        $stmt = $this->query(
+            "UPDATE users
+             SET reset_token = ?, reset_token_expires = DATE_ADD(NOW(), INTERVAL 1 HOUR)
+             WHERE email = ?",
+            'ss', [$token, $email]
+        );
+        $affected = $stmt->affected_rows;
+        $stmt->close();
+        return $affected > 0;
+    }
     
 }
