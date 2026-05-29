@@ -218,5 +218,215 @@ public function login(): void
         if (empty($_SESSION['must_change_password'])) redirect('');
         $this->view('auth.change_password');
     }
-    
+
+    public function changePassword(): void
+    {
+        $this->checkCsrf();
+        if (empty($_SESSION['user_id'])) redirect('login');
+
+        $userId = (int)$_SESSION['user_id'];
+        $user   = $this->userModel->findById($userId);
+
+        if (!$user) redirect('login');
+
+        // =========== Require OLD password ===========
+        $oldPass = $_POST['old_password'] ?? '';
+        $pepper  = $_ENV['PASSWORD_PEPPER'] ?? '';
+        $oldOk   = password_verify($oldPass . $pepper, $user['password']);
+        if (!$oldOk) {
+            // ========Fallback: try without pepper (legacy hash)---------
+            $oldOk = password_verify($oldPass, $user['password']);
+        }
+
+        if (!$oldOk) {
+            flash('error', 'Old password is incorrect.');
+            redirect('change-password');
+        }
+
+        $errors = $this->validate($_POST, ['password' => 'required|min:8']);
+        if (!empty($errors)) {
+            flash('error', current($errors));
+            redirect('change-password');
+        }
+
+        if (($_POST['password'] ?? '') !== ($_POST['password_confirm'] ?? '')) {
+            flash('error', 'New passwords do not match.');
+            redirect('change-password');
+        }
+
+        $newHash = password_hash($_POST['password'] . $pepper, PASSWORD_BCRYPT);
+        $this->userModel->updatePassword($userId, $newHash, true); // true = clear must_change_password
+
+        $_SESSION['must_change_password'] = false;
+        flash('success', 'Password changed successfully. Welcome!');
+        redirect('');
+    }
+
+      // =============================FORGOT PASSWORD ===============================
+    public function forgotPasswordForm(): void
+    {
+        $this->view('auth.forgot_password');
+    }
+
+    public function forgotPassword(): void
+    {
+        $this->checkCsrf();
+
+        $email = trim($_POST['email'] ?? '');
+        if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            flash('error', 'Please enter a valid email address.');
+            redirect('forgot-password');
+        }
+
+        $token = bin2hex(random_bytes(32));
+        $found = $this->userModel->setResetToken($email, $token);
+
+        if (!$this->emailService->isSmtpConfigured()) {
+            // Email is not configured — cannot send reset link
+            flash('error', 'Password reset requires email to be configured. Please contact your administrator to reset your password.');
+            redirect('forgot-password');
+        }
+
+        if ($found) {
+            $this->emailService->sendPasswordResetEmail($email, $token);
+            flash('success', 'A password reset link has been sent to your email address.');
+            redirect('login');
+        } else {
+            // Generic message — do not reveal whether the email exists
+            flash('info', 'If that email exists in our system, a reset link has been sent.');
+            redirect('login');
+        }
+    }
+
+    public function resetPasswordForm(): void
+    {
+        $token = $_GET['token'] ?? '';
+        $user  = $token ? $this->userModel->findByResetToken($token) : null;
+        if (!$user) {
+            flash('error', 'Invalid or expired reset link.');
+            redirect('login');
+        }
+        $this->view('auth.reset_password', ['token' => $token]);
+    }
+
+     public function resetPassword(): void
+    {
+        $this->checkCsrf();
+
+        $token = $_POST['token'] ?? '';
+        $user  = $token ? $this->userModel->findByResetToken($token) : null;
+        if (!$user) {
+            flash('error', 'Invalid or expired reset link.');
+            redirect('login');
+        }
+
+        $errors = $this->validate($_POST, ['password' => 'required|min:8']);
+        if (!empty($errors)) {
+            flash('error', current($errors));
+            redirect('reset-password?token=' . urlencode($token));
+        }
+
+        if (($_POST['password'] ?? '') !== ($_POST['password_confirm'] ?? '')) {
+            flash('error', 'Passwords do not match.');
+            redirect('reset-password?token=' . urlencode($token));
+        }
+
+        $pepper = $_ENV['PASSWORD_PEPPER'] ?? '';
+        $this->userModel->updatePassword(
+            (int)$user['id'],
+            password_hash($_POST['password'] . $pepper, PASSWORD_BCRYPT),
+            true
+        );
+
+        flash('success', 'Password reset successfully! Please log in.');
+        redirect('login');
+    }
+
+    // =============================RESTORE DEFAULT PASSWORD ===============================    
+    // Student submits their email → system verifies they are a registered
+    // student, generates a random password, emails it to them, and sets
+    // must_change_password = 1 so they must pick a new one on next login.
+
+    public function restoreDefaultForm(): void
+    {
+        $this->view('auth.restore_default');
+    }
+
+    public function restoreDefault(): void
+    {
+        $this->checkCsrf();
+
+        $email = trim($_POST['email'] ?? '');
+
+        if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            flash('error', 'Please enter a valid email address.');
+            redirect('restore-default');
+        }
+
+        // =========Find the user account by email  ===========
+        $user = $this->userModel->findByEmail($email);
+
+        if (!$user) {
+            // ---------Generic message — don't reveal whether email exists----------
+            flash('info', 'If that email belongs to a registered student, the default password has been restored and sent to your inbox.');
+            redirect('login');
+        }
+
+        // =========Only students can use this feature (admins should not restore to default)==========
+        if ($user['role'] !== 'student') {
+            flash('error', 'This feature is only available for student accounts. Admins must use the standard password reset.');
+            redirect('restore-default');
+        }
+
+        // =========Generate a fresh random 8-char password (NOT a fixed default)==========
+        $pepper          = $_ENV['PASSWORD_PEPPER'] ?? '';
+        $defaultPassword = $this->generateRandomPassword();
+        $hashedDefault   = password_hash($defaultPassword . $pepper, PASSWORD_BCRYPT);
+
+        // =========Restore password and force change on next login==========
+        $this->userModel->restoreDefaultPassword((int)$user['id'], $hashedDefault);
+
+        // Get student name for the email
+        $student = $this->studentModel->findByEmail($email);
+        $name    = $student
+            ? trim($student['first_name'] . ' ' . $student['last_name'])
+            : $user['username'];
+
+        // Send notification email with the new random password
+        $emailSent = $this->emailService->sendDefaultPasswordRestoredEmail(
+            $email,
+            $name,
+            $user['username'],
+            $defaultPassword
+        );
+
+        if ($emailSent) {
+            flash('success', 'Your password has been restored to the default. Check your email for the credentials, then log in and set a new password.');
+        } else {
+            // SMTP not configured — show credentials directly so student isn't locked out
+            flash('warning',
+                'Password restored to default: <strong>' . htmlspecialchars($defaultPassword) . '</strong>. ' .
+                '(Email not configured — credentials shown here.) ' .
+                'Log in with username <strong>' . htmlspecialchars($user['username']) . '</strong> ' .
+                'and change your password immediately.'
+            );
+        }
+
+        redirect('login');
+    }
+
+    /**
+     * Generates a cryptographically random 8-character password.
+     * Uses mixed case letters and digits (no ambiguous chars like 0/O/l/1).
+     */
+    private function generateRandomPassword(): string
+    {
+        $chars    = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        $password = '';
+        $max      = strlen($chars) - 1;
+        for ($i = 0; $i < 8; $i++) {
+            $password .= $chars[random_int(0, $max)];
+        }
+        return $password;
+    }
 }
